@@ -44,3 +44,4 @@ docker buildx build --pull \
 # Credits
 - *Nexus Team*: For the awesome repo, and their [Dockerfile](https://github.com/sonatype/docker-nexus3/blob/master/Dockerfile)
 - *Dan Rollo (bhamail)*: For the [jna-platform jar hack](https://bhamail.github.io/pinexus/nexussetup.html)
+- *Henry Wang (HenryQW)*: For [Docker buildx Github Action](https://www.henry.wang/2019/12/05/arm-dockerhub.html)
