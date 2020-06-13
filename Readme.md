@@ -6,7 +6,7 @@ Nexus doesn't provide an official image to run on Raspberry Pi.
 
 So I'm creating one and sharing it with everyone :-) .
 
-(For x86, use the official image - [sonatype/nexus3](https://hub.docker.com/r/sonatype/nexus3/))
+(For x64, use the official image - [sonatype/nexus3](https://hub.docker.com/r/sonatype/nexus3/))
 
 
 
