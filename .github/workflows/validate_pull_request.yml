@@ -1,0 +1,29 @@
+name: Validate Pull Request
+
+# Trigger on pull request, for things that warrants re-build
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - .github/**
+      - files/**
+      - Dockerfile
+
+jobs:
+  # Verify image build success
+  build_image:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Set up Docker Buildx
+        uses: crazy-max/ghaction-docker-buildx@master
+
+      - name: Build image (no push)
+        run: |
+          docker buildx build \
+            --platform "linux/arm/v7,linux/arm64" \
+            --output "type=image,push=false" \
+            --file ./Dockerfile .
