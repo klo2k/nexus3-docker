@@ -40,7 +40,7 @@ RUN chmod 755 /opt/sonatype/start-nexus-repository-manager.sh
 RUN sed -i -e '/^-Xms\|^-Xmx\|^-XX:MaxDirectMemorySize/d' /opt/sonatype/nexus/bin/nexus.vmoptions
 
 # Enable NEXUS_CONTEXT env-variable via nexus-default.properties
-RUN sed -i -e 's/^nexus-context-path=\//nexus-context-path=\${NEXUS_CONTEXT}/g' /opt/sonatype/nexus/etc/nexus-default.properties
+RUN sed -i -e 's/^nexus-context-path=\//nexus-context-path=\/\${NEXUS_CONTEXT}/g' /opt/sonatype/nexus/etc/nexus-default.properties
 
 # Fix-up: Startup error with OrientDB on ARM - replace in-place 4.5.0 with 5.5.0 lib (reference is hard-coded in config files)
 # http://bhamail.github.io/pinexus/nexussetup.html
