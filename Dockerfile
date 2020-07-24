@@ -39,6 +39,9 @@ RUN chmod 755 /opt/sonatype/start-nexus-repository-manager.sh
 # Fix-up: Startup command line: Remove hard-coded memory parameters in /opt/sonatype/nexus/bin/nexus.vmoptions (per official Docker image)
 RUN sed -i -e '/^-Xms\|^-Xmx\|^-XX:MaxDirectMemorySize/d' /opt/sonatype/nexus/bin/nexus.vmoptions
 
+# Enable NEXUS_CONTEXT env-variable via nexus-default.properties
+RUN sed -i -e 's/^nexus-context-path=\//nexus-context-path=\/\${NEXUS_CONTEXT}/g' /opt/sonatype/nexus/etc/nexus-default.properties
+
 # Fix-up: Startup error with OrientDB on ARM - replace in-place 4.5.0 with 5.5.0 lib (reference is hard-coded in config files)
 # http://bhamail.github.io/pinexus/nexussetup.html
 ADD https://repo1.maven.org/maven2/net/java/dev/jna/jna/5.5.0/jna-5.5.0.jar /opt/sonatype/nexus/system/net/java/dev/jna/jna/4.5.0/jna-4.5.0.jar
@@ -71,5 +74,6 @@ EXPOSE 8081
 USER nexus
 
 ENV INSTALL4J_ADD_VM_PARAMS="-Xms1200m -Xmx1200m -XX:MaxDirectMemorySize=2g -Djava.util.prefs.userRoot=/nexus-data/javaprefs"
+ENV NEXUS_CONTEXT=''
 
 CMD ["sh", "-c", "/opt/sonatype/start-nexus-repository-manager.sh"]
