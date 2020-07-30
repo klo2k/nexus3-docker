@@ -20,7 +20,23 @@ docker run -d -p 8081:8081 --name nexus klo2k/nexus3
 
 
 # Building with "docker buildx" locally
-ARM 32-bit (armv7l):
+Initialise [buildx](https://docs.docker.com/buildx/working-with-buildx/), if you're on a x64 machine:
+```
+# Enable experimental mode
+export DOCKER_CLI_EXPERIMENTAL=enabled
+
+# Enable ARM support
+docker run --rm --privileged docker/binfmt:a7996909642ee92942dcd6cff44b9b95f08dad64
+
+# Create 'mybuilder' if not exist, set as default builder
+docker buildx inspect mybuilder||docker buildx create --name mybuilder
+docker buildx use mybuilder
+
+# Start builder
+docker buildx inspect --bootstrap
+```
+
+Build ARM 32-bit (armv7l):
 ```
 docker buildx build --pull \
   --platform "linux/arm/v7" \
@@ -29,7 +45,7 @@ docker buildx build --pull \
   .
 ```
 
-ARM 64-bit (aarch64):
+Build ARM 64-bit (aarch64):
 ```
 docker buildx build --pull \
   --platform "linux/arm64" \
