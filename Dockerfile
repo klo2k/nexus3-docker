@@ -15,7 +15,7 @@ RUN mkdir /tmp/sonatype && \
 # Runtime image
 # Logic adapted from official Dockerfile
 # https://github.com/sonatype/docker-nexus3/blob/master/Dockerfile
-FROM ubuntu:latest
+FROM ubuntu:focal-20200115
 
 # Install Java 8 and wget
 ARG DEBIAN_FRONTEND=noninteractive
