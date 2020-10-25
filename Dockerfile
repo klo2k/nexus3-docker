@@ -17,6 +17,11 @@ RUN mkdir /tmp/sonatype && \
 # https://github.com/sonatype/docker-nexus3/blob/master/Dockerfile
 FROM ubuntu:focal-20200115
 
+# Image metadata
+# git commit
+ARG GIT_COMMIT=unspecified
+LABEL org.opencontainers.image.revision=${GIT_COMMIT}
+
 # Install Java 8 and wget
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt update && \

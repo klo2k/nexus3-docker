@@ -33,6 +33,7 @@ jobs:
       - name: Build + Push image (tag = git release tag)
         run: |
           docker buildx build \
+            --build-arg GIT_COMMIT="${{github.sha}}" \
             --platform "linux/arm/v7,linux/arm64" \
             --tag "${{secrets.REGISTRY_USERNAME}}/nexus3:${GITHUB_REF#refs/tags/}" \
             --output "type=image,push=true" \
@@ -41,6 +42,7 @@ jobs:
       - name: Build + Push image ("latest")
         run: |
           docker buildx build \
+            --build-arg GIT_COMMIT="${{github.sha}}" \
             --platform "linux/arm/v7,linux/arm64" \
             --tag "${{secrets.REGISTRY_USERNAME}}/nexus3:latest" \
             --output "type=image,push=true" \
