@@ -19,8 +19,8 @@ FROM ubuntu:focal-20200115
 
 # Image metadata
 # git commit
-ARG GIT_COMMIT=unspecified
-LABEL org.opencontainers.image.revision=${GIT_COMMIT}
+LABEL org.opencontainers.image.revision="-"
+LABEL org.opencontainers.image.source="https://github.com/klo2k/nexus3-docker"
 
 # Install Java 8 and wget
 ARG DEBIAN_FRONTEND=noninteractive

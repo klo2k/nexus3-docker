@@ -32,7 +32,7 @@ jobs:
       - name: Build image (no push)
         run: |
           docker buildx build \
-            --build-arg GIT_COMMIT="${{github.sha}}" \
+            --label org.opencontainers.image.revision="${{github.sha}}" \
             --platform "linux/arm/v7,linux/arm64" \
             --output "type=image,push=false" \
             --file ./Dockerfile .

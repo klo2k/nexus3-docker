@@ -37,7 +37,7 @@ jobs:
       - name: Build + Push image ("development")
         run: |
           docker buildx build \
-            --build-arg GIT_COMMIT="${{github.sha}}" \
+            --label org.opencontainers.image.revision="${{github.sha}}" \
             --platform "linux/arm/v7,linux/arm64" \
             --tag "${{secrets.REGISTRY_USERNAME}}/nexus3:development" \
             --output "type=image,push=true" \
