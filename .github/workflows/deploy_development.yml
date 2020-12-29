@@ -17,6 +17,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
 
+      # Enable docker cache to speed-up builds
+      - name: Setup Docker build cache
+        uses: actions/cache@v2
+        with:
+          path: /tmp/buildx-cache
+          key: ${{runner.os}}-buildx-${{github.sha}}
+          restore-keys: |
+            ${{runner.os}}-buildx-
+
       # Enable multi-architecture support on build node
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v1
@@ -37,6 +46,8 @@ jobs:
       - name: Build + Push image ("development")
         run: |
           docker buildx build \
+            --cache-from type=local,src=/tmp/buildx-cache \
+            --cache-to type=local,dest=/tmp/buildx-cache \
             --label org.opencontainers.image.revision="${{github.sha}}" \
             --platform "linux/arm/v7,linux/arm64" \
             --tag "${{secrets.REGISTRY_USERNAME}}/nexus3:development" \
