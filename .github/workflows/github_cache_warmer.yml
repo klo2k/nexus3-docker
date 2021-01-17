@@ -1,0 +1,49 @@
+# Workflow keeps the docker github cache active by building every week / on demand
+# Github drops cache over 7 days old
+# https://docs.github.com/en/actions/guides/caching-dependencies-to-speed-up-workflows
+name: GitHub Cache Warmer
+
+on:
+  schedule:
+    # Run 05:00 UTC every TUE, FRI
+    - cron: "0 5 * * 2,5"
+  # On-demand push-button build, why not...
+  workflow_dispatch:
+
+jobs:
+  build_image_to_cache:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      # Setup docker cache to keep warm
+      - name: Setup Docker build cache
+        uses: actions/cache@v2
+        with:
+          path: /tmp/buildx-cache
+          key: ${{runner.os}}-buildx-${{github.sha}}
+          restore-keys: |
+            ${{runner.os}}-buildx-
+
+      # Enable multi-architecture support on build node
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v1
+        with:
+          platforms: all
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v1
+        with:
+          version: latest
+
+      - name: Build to GitHub cache (keep it warm)
+        run: |
+          docker buildx build \
+            --cache-from type=local,src=/tmp/buildx-cache \
+            --cache-to type=local,dest=/tmp/buildx-cache \
+            --label org.opencontainers.image.revision="${{github.sha}}" \
+            --platform "linux/arm/v7,linux/arm64" \
+            --pull \
+            --output "type=image,push=false" \
+            --file ./Dockerfile .
