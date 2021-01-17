@@ -50,6 +50,7 @@ jobs:
             --cache-to type=local,dest=/tmp/buildx-cache \
             --label org.opencontainers.image.revision="${{github.sha}}" \
             --platform "linux/arm/v7,linux/arm64" \
+            --pull \
             --tag "${{secrets.REGISTRY_USERNAME}}/nexus3:development" \
             --output "type=image,push=true" \
             --file ./Dockerfile .
