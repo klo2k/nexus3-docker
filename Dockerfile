@@ -1,7 +1,7 @@
 # Download, extract Nexus to /tmp/sonatype/nexus
 FROM ubuntu:latest as downloader
 
-ARG NEXUS_VERSION=3.30.1-01
+ARG NEXUS_VERSION=3.31.1-01
 ARG NEXUS_DOWNLOAD_URL=https://download.sonatype.com/nexus/3/nexus-${NEXUS_VERSION}-unix.tar.gz
 
 ADD "${NEXUS_DOWNLOAD_URL}" "/tmp/nexus.tar.gz"
@@ -47,13 +47,13 @@ RUN sed -i -e '/^-Xms\|^-Xmx\|^-XX:MaxDirectMemorySize/d' /opt/sonatype/nexus/bi
 # Enable NEXUS_CONTEXT env-variable via nexus-default.properties
 RUN sed -i -e 's/^nexus-context-path=\//nexus-context-path=\/\${NEXUS_CONTEXT}/g' /opt/sonatype/nexus/etc/nexus-default.properties
 
-# Fix-up: Startup error with OrientDB on ARM - replace in-place 4.5.0 with 5.5.0 lib (reference is hard-coded in config files)
+# Fix-up: Startup error with OrientDB on ARM - replace in-place 5.4.0 with 5.5.0 lib (reference is hard-coded in config files)
 # http://bhamail.github.io/pinexus/nexussetup.html
-ADD https://repo1.maven.org/maven2/net/java/dev/jna/jna/5.5.0/jna-5.5.0.jar /opt/sonatype/nexus/system/net/java/dev/jna/jna/4.5.0/jna-4.5.0.jar
-ADD https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/5.5.0/jna-platform-5.5.0.jar /opt/sonatype/nexus/system/net/java/dev/jna/jna-platform/4.5.0/jna-platform-4.5.0.jar
+ADD https://repo1.maven.org/maven2/net/java/dev/jna/jna/5.5.0/jna-5.5.0.jar /opt/sonatype/nexus/system/net/java/dev/jna/jna/5.4.0/jna-5.4.0.jar
+ADD https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/5.5.0/jna-platform-5.5.0.jar /opt/sonatype/nexus/system/net/java/dev/jna/jna-platform/5.4.0/jna-platform-5.4.0.jar
 RUN chmod 644 \
-      /opt/sonatype/nexus/system/net/java/dev/jna/jna/4.5.0/jna-4.5.0.jar \
-      /opt/sonatype/nexus/system/net/java/dev/jna/jna-platform/4.5.0/jna-platform-4.5.0.jar
+      /opt/sonatype/nexus/system/net/java/dev/jna/jna/5.4.0/jna-5.4.0.jar \
+      /opt/sonatype/nexus/system/net/java/dev/jna/jna-platform/5.4.0/jna-platform-5.4.0.jar
 
 # Create Nexus user + group, based on official image:
 #   nexus:x:200:200:Nexus Repository Manager user:/opt/sonatype/nexus:/bin/false
