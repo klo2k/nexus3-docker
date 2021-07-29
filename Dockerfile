@@ -1,21 +1,21 @@
 # Download, extract Nexus to /tmp/sonatype/nexus
-FROM ubuntu:latest as downloader
+FROM debian:buster-slim as downloader
 
 ARG NEXUS_VERSION=3.32.0-03
 ARG NEXUS_DOWNLOAD_URL=https://download.sonatype.com/nexus/3/nexus-${NEXUS_VERSION}-unix.tar.gz
 
-ADD "${NEXUS_DOWNLOAD_URL}" "/tmp/nexus.tar.gz"
+RUN apt update && apt install -y wget
+
+RUN wget "${NEXUS_DOWNLOAD_URL}" -O "/tmp/nexus.tar.gz"
 RUN mkdir /tmp/sonatype && \
     tar -zxf /tmp/nexus.tar.gz -C /tmp/sonatype && \
     mv /tmp/sonatype/nexus-${NEXUS_VERSION} /tmp/sonatype/nexus
 
 
-
-
 # Runtime image
 # Logic adapted from official Dockerfile
 # https://github.com/sonatype/docker-nexus3/blob/master/Dockerfile
-FROM ubuntu:focal-20200115
+FROM debian:buster-slim
 
 # Image metadata
 # git commit
@@ -24,6 +24,13 @@ LABEL org.opencontainers.image.source="https://github.com/klo2k/nexus3-docker"
 
 # Install Java 8 and wget
 ARG DEBIAN_FRONTEND=noninteractive
+
+# Fix debian slim java installion problem
+RUN mkdir -p /usr/share/man/man1
+
+RUN echo "deb http://http.debian.net/debian stretch main" | \
+      tee --append /etc/apt/sources.list.d/stretch.list
+
 RUN apt update && \
     apt install -y --no-install-recommends openjdk-8-jre-headless && \
     apt clean
@@ -49,8 +56,9 @@ RUN sed -i -e 's/^nexus-context-path=\//nexus-context-path=\/\${NEXUS_CONTEXT}/g
 
 # Fix-up: Startup error with OrientDB on ARM - replace in-place 5.4.0 with 5.5.0 lib (reference is hard-coded in config files)
 # http://bhamail.github.io/pinexus/nexussetup.html
-ADD https://repo1.maven.org/maven2/net/java/dev/jna/jna/5.5.0/jna-5.5.0.jar /opt/sonatype/nexus/system/net/java/dev/jna/jna/5.4.0/jna-5.4.0.jar
-ADD https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/5.5.0/jna-platform-5.5.0.jar /opt/sonatype/nexus/system/net/java/dev/jna/jna-platform/5.4.0/jna-platform-5.4.0.jar
+RUN apt update && apt install -y wget
+RUN wget https://repo1.maven.org/maven2/net/java/dev/jna/jna/5.5.0/jna-5.5.0.jar -O /opt/sonatype/nexus/system/net/java/dev/jna/jna/5.4.0/jna-5.4.0.jar
+RUN wget https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/5.5.0/jna-platform-5.5.0.jar -O /opt/sonatype/nexus/system/net/java/dev/jna/jna-platform/5.4.0/jna-platform-5.4.0.jar
 RUN chmod 644 \
       /opt/sonatype/nexus/system/net/java/dev/jna/jna/5.4.0/jna-5.4.0.jar \
       /opt/sonatype/nexus/system/net/java/dev/jna/jna-platform/5.4.0/jna-platform-5.4.0.jar
@@ -58,25 +66,23 @@ RUN chmod 644 \
 # Create Nexus user + group, based on official image:
 #   nexus:x:200:200:Nexus Repository Manager user:/opt/sonatype/nexus:/bin/false
 #   nexus:x:200:nexus
-RUN groupadd --gid 200 nexus && \
-    useradd \
-      --shell /bin/false \
-      --comment 'Nexus Repository Manager user' \
-      --home-dir /opt/sonatype/nexus \
-      --no-create-home \
-      --no-user-group \
-      --uid 200 \
-      --gid 200 \
-      nexus
+#RUN groupadd --gid 200 nexus && \
+#    useradd \
+#      --shell /bin/false \
+#      --comment 'Nexus Repository Manager user' \
+#      --home-dir /opt/sonatype/nexus \
+#      --no-create-home \
+#      --no-user-group \
+#      --uid 200 \
+#      --gid 200 \
+#      nexus
 
 # Data directory "/nexus-data" owns "nexus" user
-RUN chown -R nexus:nexus /nexus-data
+# RUN chown -R nexus:nexus /nexus-data
 
 VOLUME /nexus-data
 
 EXPOSE 8081
-
-USER nexus
 
 ENV INSTALL4J_ADD_VM_PARAMS="-Xms1200m -Xmx1200m -XX:MaxDirectMemorySize=2g -Djava.util.prefs.userRoot=/nexus-data/javaprefs"
 ENV NEXUS_CONTEXT=''
