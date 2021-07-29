@@ -28,6 +28,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 # Fix debian slim java installion problem
 RUN mkdir -p /usr/share/man/man1
 
+# Java 8 is only available from debian stretch
 RUN echo "deb http://http.debian.net/debian stretch main" | \
       tee --append /etc/apt/sources.list.d/stretch.list
 
@@ -63,23 +64,7 @@ RUN chmod 644 \
       /opt/sonatype/nexus/system/net/java/dev/jna/jna/5.4.0/jna-5.4.0.jar \
       /opt/sonatype/nexus/system/net/java/dev/jna/jna-platform/5.4.0/jna-platform-5.4.0.jar
 
-# Create Nexus user + group, based on official image:
-#   nexus:x:200:200:Nexus Repository Manager user:/opt/sonatype/nexus:/bin/false
-#   nexus:x:200:nexus
-#RUN groupadd --gid 200 nexus && \
-#    useradd \
-#      --shell /bin/false \
-#      --comment 'Nexus Repository Manager user' \
-#      --home-dir /opt/sonatype/nexus \
-#      --no-create-home \
-#      --no-user-group \
-#      --uid 200 \
-#      --gid 200 \
-#      nexus
-
-# Data directory "/nexus-data" owns "nexus" user
-# RUN chown -R nexus:nexus /nexus-data
-
+# Data directory "/nexus-data"
 VOLUME /nexus-data
 
 EXPOSE 8081
