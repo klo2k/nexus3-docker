@@ -4,10 +4,20 @@ FROM ubuntu:latest as downloader
 ARG NEXUS_VERSION=3.33.0-01
 ARG NEXUS_DOWNLOAD_URL=https://download.sonatype.com/nexus/3/nexus-${NEXUS_VERSION}-unix.tar.gz
 
-ADD "${NEXUS_DOWNLOAD_URL}" "/tmp/nexus.tar.gz"
-RUN mkdir /tmp/sonatype && \
+# Download Nexus and other stuff we need later
+# Use wget to improve performance (#11)
+# Install wget
+RUN apt update && apt install -y wget
+# Download jars required for OrientDB startup error hack
+RUN wget --quiet --directory-prefix=/tmp/ \
+        https://repo1.maven.org/maven2/net/java/dev/jna/jna/5.5.0/jna-5.5.0.jar \
+        https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/5.5.0/jna-platform-5.5.0.jar
+# Download + extract Nexus to "/tmp/sonatype/nexus" for use later
+RUN wget --quiet --output-document=/tmp/nexus.tar.gz "${NEXUS_DOWNLOAD_URL}" && \
+    mkdir /tmp/sonatype && \
     tar -zxf /tmp/nexus.tar.gz -C /tmp/sonatype && \
-    mv /tmp/sonatype/nexus-${NEXUS_VERSION} /tmp/sonatype/nexus
+    mv /tmp/sonatype/nexus-${NEXUS_VERSION} /tmp/sonatype/nexus && \
+    rm /tmp/nexus.tar.gz
 
 
 
@@ -49,8 +59,8 @@ RUN sed -i -e 's/^nexus-context-path=\//nexus-context-path=\/\${NEXUS_CONTEXT}/g
 
 # Fix-up: Startup error with OrientDB on ARM - replace in-place 5.4.0 with 5.5.0 lib (reference is hard-coded in config files)
 # http://bhamail.github.io/pinexus/nexussetup.html
-ADD https://repo1.maven.org/maven2/net/java/dev/jna/jna/5.5.0/jna-5.5.0.jar /opt/sonatype/nexus/system/net/java/dev/jna/jna/5.4.0/jna-5.4.0.jar
-ADD https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/5.5.0/jna-platform-5.5.0.jar /opt/sonatype/nexus/system/net/java/dev/jna/jna-platform/5.4.0/jna-platform-5.4.0.jar
+COPY --from=downloader /tmp/jna-5.5.0.jar /opt/sonatype/nexus/system/net/java/dev/jna/jna/5.4.0/jna-5.4.0.jar
+COPY --from=downloader /tmp/jna-platform-5.5.0.jar /opt/sonatype/nexus/system/net/java/dev/jna/jna-platform/5.4.0/jna-platform-5.4.0.jar
 RUN chmod 644 \
       /opt/sonatype/nexus/system/net/java/dev/jna/jna/5.4.0/jna-5.4.0.jar \
       /opt/sonatype/nexus/system/net/java/dev/jna/jna-platform/5.4.0/jna-platform-5.4.0.jar
