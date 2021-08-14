@@ -1,5 +1,5 @@
 # Download, extract Nexus to /tmp/sonatype/nexus
-FROM ubuntu:latest as downloader
+FROM debian:buster-slim as downloader
 
 ARG NEXUS_VERSION=3.33.0-01
 ARG NEXUS_DOWNLOAD_URL=https://download.sonatype.com/nexus/3/nexus-${NEXUS_VERSION}-unix.tar.gz
@@ -25,18 +25,27 @@ RUN wget --quiet --output-document=/tmp/nexus.tar.gz "${NEXUS_DOWNLOAD_URL}" && 
 # Runtime image
 # Logic adapted from official Dockerfile
 # https://github.com/sonatype/docker-nexus3/blob/master/Dockerfile
-FROM ubuntu:focal-20200115
+FROM debian:buster-slim
 
 # Image metadata
 # git commit
 LABEL org.opencontainers.image.revision="-"
 LABEL org.opencontainers.image.source="https://github.com/klo2k/nexus3-docker"
 
-# Install Java 8 and wget
+# Install Java 8
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt update && \
-    apt install -y --no-install-recommends openjdk-8-jre-headless && \
-    apt clean
+    # Add AdoptOpenJDK repo
+    apt install --yes apt-transport-https ca-certificates gnupg software-properties-common wget && \
+    wget --quiet --output-document=- https://adoptopenjdk.jfrog.io/adoptopenjdk/api/gpg/key/public | apt-key add - && \
+    add-apt-repository --yes https://adoptopenjdk.jfrog.io/adoptopenjdk/deb/ && \
+    # Work-around adoptopenjdk-8-hotspot-jre installation error
+    mkdir --parent /usr/share/man/man1/ && \
+    # Install JRE 8 along with missing dependency
+    apt update && apt install --yes adoptopenjdk-8-hotspot-jre libatomic1 && \
+    # Clean-up
+    apt purge --yes apt-transport-https gnupg software-properties-common wget && \
+    apt autoremove --yes && apt clean
 
 # Setup: Rename App, Data and Work directory per official image
 # App directory (/opt/sonatype/nexus)
