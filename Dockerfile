@@ -1,13 +1,23 @@
 # Download, extract Nexus to /tmp/sonatype/nexus
-FROM ubuntu:latest as downloader
+FROM debian:buster-slim as downloader
 
-ARG NEXUS_VERSION=3.32.0-03
+ARG NEXUS_VERSION=3.33.0-01
 ARG NEXUS_DOWNLOAD_URL=https://download.sonatype.com/nexus/3/nexus-${NEXUS_VERSION}-unix.tar.gz
 
-ADD "${NEXUS_DOWNLOAD_URL}" "/tmp/nexus.tar.gz"
-RUN mkdir /tmp/sonatype && \
+# Download Nexus and other stuff we need later
+# Use wget to improve performance (#11)
+# Install wget
+RUN apt update && apt install -y wget
+# Download jars required for OrientDB startup error hack
+RUN wget --quiet --directory-prefix=/tmp/ \
+        https://repo1.maven.org/maven2/net/java/dev/jna/jna/5.5.0/jna-5.5.0.jar \
+        https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/5.5.0/jna-platform-5.5.0.jar
+# Download + extract Nexus to "/tmp/sonatype/nexus" for use later
+RUN wget --quiet --output-document=/tmp/nexus.tar.gz "${NEXUS_DOWNLOAD_URL}" && \
+    mkdir /tmp/sonatype && \
     tar -zxf /tmp/nexus.tar.gz -C /tmp/sonatype && \
-    mv /tmp/sonatype/nexus-${NEXUS_VERSION} /tmp/sonatype/nexus
+    mv /tmp/sonatype/nexus-${NEXUS_VERSION} /tmp/sonatype/nexus && \
+    rm /tmp/nexus.tar.gz
 
 
 
@@ -15,18 +25,27 @@ RUN mkdir /tmp/sonatype && \
 # Runtime image
 # Logic adapted from official Dockerfile
 # https://github.com/sonatype/docker-nexus3/blob/master/Dockerfile
-FROM ubuntu:focal-20200115
+FROM debian:buster-slim
 
 # Image metadata
 # git commit
 LABEL org.opencontainers.image.revision="-"
 LABEL org.opencontainers.image.source="https://github.com/klo2k/nexus3-docker"
 
-# Install Java 8 and wget
+# Install Java 8
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt update && \
-    apt install -y --no-install-recommends openjdk-8-jre-headless && \
-    apt clean
+    # Add AdoptOpenJDK repo
+    apt install --yes apt-transport-https ca-certificates gnupg software-properties-common wget && \
+    wget --quiet --output-document=- https://adoptopenjdk.jfrog.io/adoptopenjdk/api/gpg/key/public | apt-key add - && \
+    add-apt-repository --yes https://adoptopenjdk.jfrog.io/adoptopenjdk/deb/ && \
+    # Work-around adoptopenjdk-8-hotspot-jre installation error
+    mkdir --parent /usr/share/man/man1/ && \
+    # Install JRE 8 along with missing dependency
+    apt update && apt install --yes adoptopenjdk-8-hotspot-jre libatomic1 && \
+    # Clean-up
+    apt purge --yes apt-transport-https gnupg software-properties-common wget && \
+    apt autoremove --yes && apt clean
 
 # Setup: Rename App, Data and Work directory per official image
 # App directory (/opt/sonatype/nexus)
@@ -49,8 +68,8 @@ RUN sed -i -e 's/^nexus-context-path=\//nexus-context-path=\/\${NEXUS_CONTEXT}/g
 
 # Fix-up: Startup error with OrientDB on ARM - replace in-place 5.4.0 with 5.5.0 lib (reference is hard-coded in config files)
 # http://bhamail.github.io/pinexus/nexussetup.html
-ADD https://repo1.maven.org/maven2/net/java/dev/jna/jna/5.5.0/jna-5.5.0.jar /opt/sonatype/nexus/system/net/java/dev/jna/jna/5.4.0/jna-5.4.0.jar
-ADD https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/5.5.0/jna-platform-5.5.0.jar /opt/sonatype/nexus/system/net/java/dev/jna/jna-platform/5.4.0/jna-platform-5.4.0.jar
+COPY --from=downloader /tmp/jna-5.5.0.jar /opt/sonatype/nexus/system/net/java/dev/jna/jna/5.4.0/jna-5.4.0.jar
+COPY --from=downloader /tmp/jna-platform-5.5.0.jar /opt/sonatype/nexus/system/net/java/dev/jna/jna-platform/5.4.0/jna-platform-5.4.0.jar
 RUN chmod 644 \
       /opt/sonatype/nexus/system/net/java/dev/jna/jna/5.4.0/jna-5.4.0.jar \
       /opt/sonatype/nexus/system/net/java/dev/jna/jna-platform/5.4.0/jna-platform-5.4.0.jar
