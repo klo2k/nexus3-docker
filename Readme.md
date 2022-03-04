@@ -53,7 +53,10 @@ docker buildx build --pull \
   --output=type=docker \
   .
 ```
-
+For windows only:
+```
+%USERPROFILE%\.docker\cli-plugins\buildx-v0.7.0.windows-amd64.exe build -t nexus:EAP-linux-arm64-0.38.0 --platform linux/arm64 .
+```
 
 
 
