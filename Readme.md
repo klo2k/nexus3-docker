@@ -11,22 +11,22 @@ So I'm creating one and sharing it with everyone :-) .
 
 
 
-# Running
-```
+## Running
+
+```bash
 docker run -d -p 8081:8081 --name nexus klo2k/nexus3
 ```
 
 
 
 
-# Building with "docker buildx" locally
-Initialise [buildx](https://docs.docker.com/buildx/working-with-buildx/), if you're on a x64 machine:
-```
-# Enable experimental mode
-export DOCKER_CLI_EXPERIMENTAL=enabled
+## Building with "docker buildx" locally
 
+Initialise [buildx](https://docs.docker.com/desktop/multi-arch/), if you're on a x64 machine:
+
+```bash
 # Enable ARM support
-docker run --rm --privileged docker/binfmt:a7996909642ee92942dcd6cff44b9b95f08dad64
+docker run --rm --privileged multiarch/qemu-user-static --reset --persistent yes
 
 # Create 'mybuilder' if not exist, set as default builder
 docker buildx inspect mybuilder||docker buildx create --name mybuilder
@@ -37,7 +37,8 @@ docker buildx inspect --bootstrap
 ```
 
 Build ARM 32-bit (armv7l):
-```
+
+```bash
 docker buildx build --pull \
   --platform "linux/arm/v7" \
   --tag "klo2k/nexus3" \
@@ -46,7 +47,8 @@ docker buildx build --pull \
 ```
 
 Build ARM 64-bit (aarch64):
-```
+
+```bash
 docker buildx build --pull \
   --platform "linux/arm64" \
   --tag "klo2k/nexus3" \
@@ -57,7 +59,8 @@ docker buildx build --pull \
 
 
 
-# Credits
+## Credits
+
 - *Nexus Team*: For the awesome repo, and their [Dockerfile](https://github.com/sonatype/docker-nexus3/blob/master/Dockerfile)
 - *Dan Rollo (bhamail)*: For the [jna-platform jar hack](https://bhamail.github.io/pinexus/nexussetup.html)
 - *Henry Wang (HenryQW)*: For [Docker buildx Github Action](https://www.henry.wang/2019/12/05/arm-dockerhub.html)
