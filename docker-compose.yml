@@ -1,0 +1,29 @@
+# Example docker-compose file to build + run locally:
+# docker-compose build
+# docker-compose up
+services:
+  nexus:
+    build:
+      context: .
+      # Build for arm64, uncomment to build for armv7
+      platforms:
+        - linux/arm64
+        #- linux/arm/v7
+    image: klo2k/nexus3:latest
+    container_name: nexus
+    # environment:
+    #   # Run this under http://localhost:8081/nxrm/
+    #   NEXUS_CONTEXT: 'nxrm'
+    volumes:
+      - nexus-data:/nexus-data
+    ports:
+      - 127.0.0.1:8081:8081
+    networks:
+      - nexus
+
+networks:
+  nexus:
+    driver: bridge
+
+volumes:
+  nexus-data:
