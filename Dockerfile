@@ -1,17 +1,13 @@
 # Download, extract Nexus to /tmp/sonatype/nexus
 FROM eclipse-temurin:8-jre-jammy as downloader
 
-ARG NEXUS_VERSION=3.40.1-01
+ARG NEXUS_VERSION=3.43.0-01
 ARG NEXUS_DOWNLOAD_URL=https://download.sonatype.com/nexus/3/nexus-${NEXUS_VERSION}-unix.tar.gz
 
 # Download Nexus and other stuff we need later
 # Use wget to improve performance (#11)
 # Install wget
 RUN apt update && apt install -y wget
-# Download jars required for OrientDB startup error hack
-RUN wget --quiet --directory-prefix=/tmp/ \
-        https://repo1.maven.org/maven2/net/java/dev/jna/jna/5.5.0/jna-5.5.0.jar \
-        https://repo1.maven.org/maven2/net/java/dev/jna/jna-platform/5.5.0/jna-platform-5.5.0.jar
 # Download + extract Nexus to "/tmp/sonatype/nexus" for use later
 RUN wget --quiet --output-document=/tmp/nexus.tar.gz "${NEXUS_DOWNLOAD_URL}" && \
     mkdir /tmp/sonatype && \
@@ -41,29 +37,18 @@ RUN \
     # Work directory (/opt/sonatype/sonatype-work/nexus3)
     ln -s /nexus-data /opt/sonatype/sonatype-work/nexus3
 
-# Setup: Start-up script (from official image)
-COPY files/opt/sonatype/start-nexus-repository-manager.sh /opt/sonatype/start-nexus-repository-manager.sh
-RUN chmod 755 /opt/sonatype/start-nexus-repository-manager.sh
-
 # Fix-up: Startup command line: Remove hard-coded memory parameters in /opt/sonatype/nexus/bin/nexus.vmoptions (per official Docker image)
-RUN sed -i -e '/^-Xms\|^-Xmx\|^-XX:MaxDirectMemorySize/d' /opt/sonatype/nexus/bin/nexus.vmoptions
+RUN sed -i '/^-Xms/d;/^-Xmx/d;/^-XX:MaxDirectMemorySize/d' /opt/sonatype/nexus/bin/nexus.vmoptions
 
 # Enable NEXUS_CONTEXT env-variable via nexus-default.properties
 RUN sed -i -e 's/^nexus-context-path=\//nexus-context-path=\/\${NEXUS_CONTEXT}/g' /opt/sonatype/nexus/etc/nexus-default.properties
-
-# Fix-up: Startup error with OrientDB on ARM - replace in-place 5.4.0 with 5.5.0 lib (reference is hard-coded in config files)
-# http://bhamail.github.io/pinexus/nexussetup.html
-COPY --from=downloader /tmp/jna-5.5.0.jar /opt/sonatype/nexus/system/net/java/dev/jna/jna/5.4.0/jna-5.4.0.jar
-COPY --from=downloader /tmp/jna-platform-5.5.0.jar /opt/sonatype/nexus/system/net/java/dev/jna/jna-platform/5.4.0/jna-platform-5.4.0.jar
-RUN chmod 644 \
-      /opt/sonatype/nexus/system/net/java/dev/jna/jna/5.4.0/jna-5.4.0.jar \
-      /opt/sonatype/nexus/system/net/java/dev/jna/jna-platform/5.4.0/jna-platform-5.4.0.jar
 
 # Create Nexus user + group, based on official image:
 #   nexus:x:200:200:Nexus Repository Manager user:/opt/sonatype/nexus:/bin/false
 #   nexus:x:200:nexus
 RUN groupadd --gid 200 nexus && \
     useradd \
+      --system \
       --shell /bin/false \
       --comment 'Nexus Repository Manager user' \
       --home-dir /opt/sonatype/nexus \
@@ -73,16 +58,22 @@ RUN groupadd --gid 200 nexus && \
       --gid 200 \
       nexus
 
-# Data directory "/nexus-data" owns "nexus" user
+# Data directory "/nexus-data" owned by "nexus" user
 RUN chown -R nexus:nexus /nexus-data
 
+# Data volume
 VOLUME /nexus-data
 
 EXPOSE 8081
 
 USER nexus
 
-ENV INSTALL4J_ADD_VM_PARAMS="-Xms1200m -Xmx1200m -XX:MaxDirectMemorySize=2g -Djava.util.prefs.userRoot=/nexus-data/javaprefs"
-ENV NEXUS_CONTEXT=''
+# Default environment variables, adapted from upstream Dockerfile
+ENV NEXUS_HOME=/opt/sonatype/nexus \
+    NEXUS_DATA=/nexus-data \
+    NEXUS_CONTEXT='' \
+    SONATYPE_WORK=/opt/sonatype/sonatype-work \
+    # Low `-Xms`, `-Xmx` default for Raspberry Pi
+    INSTALL4J_ADD_VM_PARAMS="-Xms1200m -Xmx1200m -XX:MaxDirectMemorySize=2g -Djava.util.prefs.userRoot=/nexus-data/javaprefs"
 
-CMD ["sh", "-c", "/opt/sonatype/start-nexus-repository-manager.sh"]
+CMD ["/opt/sonatype/nexus/bin/nexus", "run"]
