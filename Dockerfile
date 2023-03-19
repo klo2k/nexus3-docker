@@ -1,7 +1,7 @@
 # Download, extract Nexus to /tmp/sonatype/nexus
 FROM eclipse-temurin:8-jre-jammy as downloader
 
-ARG NEXUS_VERSION=3.43.0-01
+ARG NEXUS_VERSION=3.49.0-02
 ARG NEXUS_DOWNLOAD_URL=https://download.sonatype.com/nexus/3/nexus-${NEXUS_VERSION}-unix.tar.gz
 
 # Download Nexus and other stuff we need later
@@ -48,15 +48,15 @@ RUN sed -i -e 's/^nexus-context-path=\//nexus-context-path=\/\${NEXUS_CONTEXT}/g
 #   nexus:x:200:nexus
 RUN groupadd --gid 200 nexus && \
     useradd \
-      --system \
-      --shell /bin/false \
-      --comment 'Nexus Repository Manager user' \
-      --home-dir /opt/sonatype/nexus \
-      --no-create-home \
-      --no-user-group \
-      --uid 200 \
-      --gid 200 \
-      nexus
+    --system \
+    --shell /bin/false \
+    --comment 'Nexus Repository Manager user' \
+    --home-dir /opt/sonatype/nexus \
+    --no-create-home \
+    --no-user-group \
+    --uid 200 \
+    --gid 200 \
+    nexus
 
 # Data directory "/nexus-data" owned by "nexus" user
 RUN chown -R nexus:nexus /nexus-data
