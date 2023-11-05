@@ -1,0 +1,22 @@
+name: Get Latest Nexus Version
+
+on:
+  workflow_call:
+    outputs:
+      nexus_version:
+        description: Latest Nexus Version
+        value: ${{ jobs.get_latest_version.outputs.nexus_version }}
+
+jobs:
+  get_latest_version:
+    runs-on: ubuntu-latest
+    outputs:
+      NEXUS_VERSION: ${{ steps.getversion.outputs.nexus_version }}
+    steps:
+      - id: getversion
+        name: Get Nexus Version
+        run: |
+          set -eu -o pipefail
+          NEXUS_VERSION="$(curl --silent 'https://raw.githubusercontent.com/sonatype/docker-nexus3/main/Dockerfile'|grep -Ei '^ARG NEXUS_VERSION'|cut --delimiter='=' --fields=2|tr --delete '[:space:]')"
+          echo "DEBUG: ${NEXUS_VERSION}"
+          echo "nexus_version=${NEXUS_VERSION}" >> "$GITHUB_OUTPUT"

@@ -1,21 +1,25 @@
 name: Deploy Release Build
 
-# Trigger on release
+# Trigger on new version tag
 on:
-  release:
-    types:
-      - released
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+*'
 
 jobs:
+  # get_latest_version:
+  #   uses: ./.github/workflows/get_nexus_version_latest.yml
+
   build_deploy_to_registry:
     runs-on: ubuntu-latest
+    # needs: get_latest_version
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       # Enable docker cache to speed-up builds
       - name: Setup Docker build cache
-        uses: actions/cache@v2
+        uses: actions/cache@v3
         with:
           path: /tmp/buildx-cache
           key: ${{runner.os}}-buildx-${{github.sha}}
@@ -24,40 +28,67 @@ jobs:
 
       # Enable multi-architecture support on build node
       - name: Set up QEMU
-        uses: docker/setup-qemu-action@v1
+        uses: docker/setup-qemu-action@v3
         with:
           platforms: all
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@v3
         with:
           version: latest
 
       - name: Docker login
-        uses: docker/login-action@v1
+        uses: docker/login-action@v3
         with:
           username: ${{secrets.REGISTRY_USERNAME}}
           password: ${{secrets.REGISTRY_PASSWORD}}
 
-      - name: Build + Push image (tag = git release tag)
+      - name: Build + Push image (tag = git tag)
+        env:
+          # `github.ref_name` == git tag triggered build
+          NEXUS_VERSION: ${{github.ref_name}}
         run: |
           docker buildx build \
+            --build-arg "NEXUS_VERSION=${NEXUS_VERSION}" \
             --cache-from type=local,src=/tmp/buildx-cache \
             --cache-to type=local,dest=/tmp/buildx-cache \
             --label org.opencontainers.image.revision="${{github.sha}}" \
+            --label org.opencontainers.image.version="${NEXUS_VERSION}" \
             --platform "linux/arm/v7,linux/arm64" \
             --pull \
-            --tag "${{secrets.REGISTRY_USERNAME}}/nexus3:${GITHUB_REF#refs/tags/}" \
+            --tag "${{secrets.REGISTRY_USERNAME}}/nexus3:${NEXUS_VERSION}" \
             --output "type=image,push=true" \
             --file ./Dockerfile .
 
       - name: Build + Push image ("latest")
+        env:
+          # `github.ref_name` == git tag triggered build
+          NEXUS_VERSION: ${{github.ref_name}}
         run: |
           docker buildx build \
+            --build-arg "NEXUS_VERSION=${NEXUS_VERSION}" \
             --cache-from type=local,src=/tmp/buildx-cache \
             --cache-to type=local,dest=/tmp/buildx-cache \
             --label org.opencontainers.image.revision="${{github.sha}}" \
+            --label org.opencontainers.image.version="${NEXUS_VERSION}" \
             --platform "linux/arm/v7,linux/arm64" \
             --tag "${{secrets.REGISTRY_USERNAME}}/nexus3:latest" \
             --output "type=image,push=true" \
             --file ./Dockerfile .
+
+  create_release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs: build_deploy_to_registry
+    steps:
+      - name: Create Github Release
+        uses: ncipollo/release-action@v1.13.0
+        with:
+          tag: ${{github.ref_name}}
+          name: ${{github.ref_name}}
+          body: (Automated release)
+          draft: false
+          prerelease: false
+          # Allow re-run workflow job
+          skipIfReleaseExists: true
