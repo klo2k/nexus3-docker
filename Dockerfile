@@ -1,7 +1,7 @@
 # Download, extract Nexus to /tmp/sonatype/nexus
 FROM eclipse-temurin:8-jre-jammy as downloader
 
-ARG NEXUS_VERSION=3.49.0-02
+ARG NEXUS_VERSION=${NEXUS_VERSION}
 ARG NEXUS_DOWNLOAD_URL=https://download.sonatype.com/nexus/3/nexus-${NEXUS_VERSION}-unix.tar.gz
 
 # Download Nexus and other stuff we need later
@@ -27,6 +27,7 @@ FROM eclipse-temurin:8-jre-jammy
 # git commit
 LABEL org.opencontainers.image.revision="-"
 LABEL org.opencontainers.image.source="https://github.com/klo2k/nexus3-docker"
+LABEL org.opencontainers.image.version="-"
 
 # Setup: Rename App, Data and Work directory per official image
 # App directory (/opt/sonatype/nexus)
