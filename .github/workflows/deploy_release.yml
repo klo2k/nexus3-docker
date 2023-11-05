@@ -1,10 +1,10 @@
 name: Deploy Release Build
 
-# Trigger on release
+# Trigger on new version tag
 on:
-  release:
-    types:
-      - released
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+*'
 
 jobs:
   # get_latest_version:
@@ -75,3 +75,20 @@ jobs:
             --tag "${{secrets.REGISTRY_USERNAME}}/nexus3:latest" \
             --output "type=image,push=true" \
             --file ./Dockerfile .
+
+  create_release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs: build_deploy_to_registry
+    steps:
+      - name: Create Github Release
+        uses: ncipollo/release-action@v1.13.0
+        with:
+          tag: ${{github.ref_name}}
+          name: ${{github.ref_name}}
+          body: (Automated release)
+          draft: false
+          prerelease: false
+          # Allow re-run workflow job
+          skipIfReleaseExists: true
