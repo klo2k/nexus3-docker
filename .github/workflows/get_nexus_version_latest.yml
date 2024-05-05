@@ -6,6 +6,8 @@ on:
       nexus_version:
         description: Latest Nexus Version
         value: ${{ jobs.get_latest_version.outputs.nexus_version }}
+  # Allow push-button run for debugging...
+  workflow_dispatch:
 
 jobs:
   get_latest_version:

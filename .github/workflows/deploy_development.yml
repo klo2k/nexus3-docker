@@ -1,14 +1,19 @@
 name: Deploy Development Build
 
-# Trigger on push to "development" branch
 on:
   push:
+    # On push to "development" branch for relevant files
     branches:
       - development
     paths:
       - .github/**
       - files/**
       - Dockerfile
+  schedule:
+    # Run 05:00 UTC every TUE, FRI
+    - cron: "0 5 * * 2,5"
+  # On-demand push-button build, why not...
+  workflow_dispatch:
 
 jobs:
   get_latest_version:
